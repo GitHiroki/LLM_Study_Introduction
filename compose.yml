@@ -1,0 +1,35 @@
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: study_ollama
+    ports: ["11434:11434"]
+    volumes: [ollama:/root/.ollama]
+    # deploy:                # CPU-only の場合は deploy ブロックごと削除
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           capabilities: [gpu]
+
+  rag-api:
+    build: ./rag_api
+    container_name: study_rag-api
+    ports: ["8000:8000"]
+    environment:
+      - OLLAMA_BASE_URL=http://study_ollama:11434
+      - CHROMA_DIR=/data/chroma
+    volumes:
+      - ./rag_api/docs:/app/docs
+      - ./chroma_store:/data/chroma
+
+  webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: study_open-webui
+    ports: ["3000:8080"]
+    environment:
+      - OPENAI_API_KEY=dummy             # 任意文字列
+      - OPENAI_API_BASE_URL=http://study_rag-api:8000/v1
+    depends_on: [rag-api]
+
+volumes:
+  ollama:
